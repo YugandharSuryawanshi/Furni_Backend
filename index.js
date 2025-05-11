@@ -47,7 +47,7 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(upload());
-app.use(express.static("public"));
+app.use(express.static("public/uploads"));
 
 // Configure CORS
 app.use(cors({
