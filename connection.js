@@ -1,31 +1,71 @@
+// // import mysql from 'mysql2';
+// // import { config } from './config/config.js';
+// // import { promisify } from 'util';
+
+// // // Database connection setup
+// // const conn = mysql.createConnection({
+// //     host: config.db.host || 'localhost',
+// //     user: config.db.user || 'root',
+// //     password: config.db.password || '',
+// //     database: config.db.database || 'furni_shop'
+// // });
+
+// // // Connect to the database
+// // conn.connect((err) => {
+// //     if (err) {
+// //         console.error('Error connecting to database:', err);
+// //         return;
+// //     }
+// //     console.log('Database connected successfully!');
+// // });
+
+// // // Promisify the query method for async/await use
+// // const exe = promisify(conn.query).bind(conn);
+
+// // // Export 'exe' for use in other files
+// // export { exe };
+
+
+
+
 // import mysql from 'mysql2';
 // import { config } from './config/config.js';
 // import { promisify } from 'util';
 
-// // Database connection setup
-// const conn = mysql.createConnection({
-//     host: config.db.host || 'localhost',
-//     user: config.db.user || 'root',
-//     password: config.db.password || '',
-//     database: config.db.database || 'furni_shop'
-// });
+// let conn;
 
-// // Connect to the database
-// conn.connect((err) => {
-//     if (err) {
-//         console.error('Error connecting to database:', err);
-//         return;
-//     }
-//     console.log('Database connected successfully!');
-// });
+// function handleDisconnect() {
+//     conn = mysql.createConnection({
+//         host: config.db.host || 'localhost',
+//         user: config.db.user || 'root',
+//         password: config.db.password || '',
+//         database: config.db.database || 'furni_shop'
+//     });
 
-// // Promisify the query method for async/await use
-// const exe = promisify(conn.query).bind(conn);
+//     conn.connect((err) => {
+//         if (err) {
+//             console.error('Error connecting to database:', err);
+//             setTimeout(handleDisconnect, 2000); // Retry after 2s
+//         } else {
+//             console.log('Database connected successfully!');
+//         }
+//     });
 
-// // Export 'exe' for use in other files
+//     conn.on('error', (err) => {
+//         console.error('DB Error:', err);
+//         if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+//             handleDisconnect(); // Reconnect
+//         } else {
+//             throw err;
+//         }
+//     });
+// }
+
+// handleDisconnect();
+
+// const exe = promisify(() => conn.query(...arguments)).bind(conn);
+
 // export { exe };
-
-
 
 
 import mysql from 'mysql2';
@@ -63,6 +103,7 @@ function handleDisconnect() {
 
 handleDisconnect();
 
-const exe = promisify(() => conn.query(...arguments)).bind(conn);
+// ✅ Correct promisification without using 'arguments'
+const exe = promisify(conn.query).bind(conn);
 
 export { exe };
