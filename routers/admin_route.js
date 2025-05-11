@@ -7,6 +7,9 @@ import { exe } from '../connection.js';
 const router = express.Router();
 const blacklist = new Set();
 
+router.get('/', (req, res) => {
+    res.send('Backend is working!');
+});
 
 function authenticateToken(req, res, next) {
     const adminToken = req.headers['authorization']?.split(' ')[1];

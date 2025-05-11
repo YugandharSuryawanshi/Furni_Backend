@@ -37,6 +37,10 @@ function authenticateToken(req, res, next) {
     });
 };
 
+router.get('/', (req, res) => {
+    res.send('Backend is working!');
+});
+
 // Register new user
 router.post('/register', async (req, res) => {
     const { user_name, user_mobile, user_email, user_address, user_password, otp } = req.body;

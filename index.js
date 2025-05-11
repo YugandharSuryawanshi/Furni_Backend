@@ -25,6 +25,10 @@ app.use(cors({
 app.use('/', userRoute);
 app.use('/admin', adminRoute);
 
+app.get('/', (req, res) => {
+    res.send('Backend is working!');
+});
+
 const PORT = process.env.PORT || 1000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
