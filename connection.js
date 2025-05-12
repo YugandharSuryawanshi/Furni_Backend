@@ -94,7 +94,8 @@ function handleDisconnect() {
     conn.on('error', (err) => {
         console.error('DB Error:', err);
         if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-            handleDisconnect(); // Reconnect
+            console.log('Reconnecting to DB...');
+            handleDisconnect();
         } else {
             throw err;
         }
@@ -103,7 +104,21 @@ function handleDisconnect() {
 
 handleDisconnect();
 
-// ✅ Correct promisification without using 'arguments'
-const exe = promisify(conn.query).bind(conn);
+// Function to always get the current connection for queries
+function exe(sql, params) {
+    return new Promise((resolve, reject) => {
+        if (!conn || conn.state === 'disconnected') {
+            console.log('Reconnecting before executing query...');
+            handleDisconnect();
+            return reject(new Error('Database connection was closed. Reconnecting...'));
+        }
+
+        conn.query(sql, params, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+}
 
 export { exe };
+
