@@ -1708,5 +1708,20 @@ router.post('/verify-otp', async (req, res) => {
     }
 });
 
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+    const { admin_email, newPassword, otp } = req.body;
+    console.log(admin_email, newPassword, otp);
+    console.log(req.body);
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await exe('UPDATE admins SET admin_password = ? WHERE admin_email = ?', [hashedPassword, admin_email]);
+        res.json({ status: 'success', message: 'Password reset successfully' });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: 'error', message: 'Failed to reset password' });
+    }
+})
+
 
 export { router as adminRoute };
