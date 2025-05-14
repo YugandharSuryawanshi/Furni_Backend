@@ -97,7 +97,7 @@ router.post('/register', async (req, res) => {
 //         }
 //     });
 // });
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
     const { user_email, user_password } = req.body;
 
     console.log('User email:', user_email);
@@ -108,43 +108,38 @@ router.post('/login', (req, res) => {
         return res.status(400).json({ message: 'Email and Password are required' });
     }
 
-    const sql = 'SELECT * FROM users WHERE user_email = ?';
-    exe(sql, [user_email], (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Database error' });
+    try {
+        const sql = 'SELECT * FROM users WHERE user_email = ?';
+        const result = await exe(sql, [user_email]);  // ✅ using 'result'
+
+        if (result.length === 0) {  // ✅ fixed here
+            return res.status(401).send({ message: 'Invalid Email or password' });
         }
 
-        if (results.length === 0) {
-            return res.status(404).json({ message: 'User not found' });
+        const user = result[0];
+        const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
+        console.log('isPasswordValid:', isPasswordValid);
+
+        if (!isPasswordValid) {
+            return res.status(401).send({ message: 'Invalid email or password' });
         }
 
-        const user = results[0];
-        console.log('User is found:', user);
+        const userToken = jwt.sign(
+            { id: user.user_id, user_email: user.user_email },
+            config.userJwtSecret,
+            { expiresIn: config.userJwtExpire }
+        );
 
-        // Use bcrypt.compare with callback
-        bcrypt.compare(user_password, user.user_password, (err, isPasswordValid) => {
-            if (err) {
-                console.error('Error comparing password:', err);
-                return res.status(500).json({ message: 'Password comparison failed' });
-            }
+        console.log('User Token Is:', userToken);
 
-            console.log('Is password Matched:', isPasswordValid);
+        return res.json({ message: 'Login successful', userToken });
 
-            if (!isPasswordValid) {
-                return res.status(401).json({ message: 'Invalid email or password' });
-            }
-
-            const userToken = jwt.sign(
-                { id: user.user_id, user_email: user.user_email },
-                config.userJwtSecret,
-                { expiresIn: config.userJwtExpire }
-            );
-
-            return res.json({ message: 'Login successful', userToken });
-        });
-    });
+    } catch (err) {
+        console.error('Error during login:', err);
+        return res.status(500).send({ message: 'Database error' });
+    }
 });
+
 
 
 
