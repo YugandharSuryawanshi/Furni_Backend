@@ -276,20 +276,16 @@ router.get('/products', async (req, res) => {
 router.get('/product', async (req, res) => {
     try {
         const productId = parseInt(req.query.id);
-        console.log("✅ Received Product ID:", productId);
 
         if (!productId || isNaN(productId)) {
             return res.status(400).json({ message: 'Invalid product ID' });
         }
 
         const result = await exe('SELECT * FROM product WHERE product_id = ?', [productId]);
-        console.log('Result is : -', result);
-        
 
         if (!result || result.length === 0) {
             return res.status(404).json({ message: 'Product not found' });
         }
-
         res.status(200).json(result[0]);
     } catch (error) {
         console.error("❌ Error fetching product:", error);

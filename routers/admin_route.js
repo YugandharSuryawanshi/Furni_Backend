@@ -1711,8 +1711,6 @@ router.post('/verify-otp', async (req, res) => {
 // Reset Password
 router.post('/reset-password', async (req, res) => {
     const { admin_email, newPassword } = req.body;
-    console.log(admin_email, newPassword);
-    console.log(req.body);
     try {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await exe('UPDATE admins SET admin_password = ? WHERE admin_email = ?', [hashedPassword, admin_email]);
