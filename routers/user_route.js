@@ -67,25 +67,69 @@ router.post('/register', async (req, res) => {
 });
 
 // Login User
+// router.post('/login', (req, res) => {
+//     const { user_email, user_password } = req.body;
+//     const sql = 'SELECT * FROM users WHERE user_email = ?';
+//     exe(sql, [user_email], async (err, results) => {
+//         if (err || results.length === 0) {
+//             console.error(err);
+//             return res.status(500).json({ message: 'Database error or user not found' });
+//         }
+
+//         const user = results[0];
+
+//         try {
+//             // Verify password
+//             const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
+//             if (!isPasswordValid) {
+//                 return res.status(401).json({ message: 'Invalid email or password' });
+//             }
+
+//             // Generate JWT token
+//             const userToken = jwt.sign(
+//                 { id: user.user_id, user_email: user.user_email },
+//                 config.userJwtSecret, { expiresIn: config.userJwtExpire }
+//             );
+//             return res.json({ message: 'Login successful', userToken });
+//         } catch (error) {
+//             console.error(error);
+//             return res.status(500).json({ message: 'Error during login' });
+//         }
+//     });
+// });
 router.post('/login', (req, res) => {
     const { user_email, user_password } = req.body;
+
+    console.log('User email:', user_email);
+    console.log('User password:', user_password);
+    console.log('Body data:', req.body);
+
+    if (!user_email || !user_password) {
+        return res.status(400).json({ message: 'Email and Password are required' });
+    }
+
     const sql = 'SELECT * FROM users WHERE user_email = ?';
     exe(sql, [user_email], async (err, results) => {
-        if (err || results.length === 0) {
+        if (err) {
             console.error(err);
-            return res.status(500).json({ message: 'Database error or user not found' });
+            return res.status(500).json({ message: 'Database error' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
         const user = results[0];
+        console.log('User is found:', user);
 
         try {
-            // Verify password
             const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
+            console.log('Is password Matched:', isPasswordValid);
+            
             if (!isPasswordValid) {
                 return res.status(401).json({ message: 'Invalid email or password' });
             }
 
-            // Generate JWT token
             const userToken = jwt.sign(
                 { id: user.user_id, user_email: user.user_email },
                 config.userJwtSecret, { expiresIn: config.userJwtExpire }
@@ -97,6 +141,7 @@ router.post('/login', (req, res) => {
         }
     });
 });
+
 
 // Protected route example (requires authentication)
 router.get('/userProtected', authenticateToken, (req, res) => {
