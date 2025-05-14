@@ -109,7 +109,7 @@ router.post('/login', (req, res) => {
     }
 
     const sql = 'SELECT * FROM users WHERE user_email = ?';
-    exe(sql, [user_email], async (err, results) => {
+    exe(sql, [user_email], (err, results) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: 'Database error' });
@@ -122,25 +122,30 @@ router.post('/login', (req, res) => {
         const user = results[0];
         console.log('User is found:', user);
 
-        try {
-            const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
+        // Use bcrypt.compare with callback
+        bcrypt.compare(user_password, user.user_password, (err, isPasswordValid) => {
+            if (err) {
+                console.error('Error comparing password:', err);
+                return res.status(500).json({ message: 'Password comparison failed' });
+            }
+
             console.log('Is password Matched:', isPasswordValid);
-            
+
             if (!isPasswordValid) {
                 return res.status(401).json({ message: 'Invalid email or password' });
             }
 
             const userToken = jwt.sign(
                 { id: user.user_id, user_email: user.user_email },
-                config.userJwtSecret, { expiresIn: config.userJwtExpire }
+                config.userJwtSecret,
+                { expiresIn: config.userJwtExpire }
             );
+
             return res.json({ message: 'Login successful', userToken });
-        } catch (error) {
-            console.error(error);
-            return res.status(500).json({ message: 'Error during login' });
-        }
+        });
     });
 });
+
 
 
 // Protected route example (requires authentication)
