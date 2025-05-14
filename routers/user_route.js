@@ -67,42 +67,8 @@ router.post('/register', async (req, res) => {
 });
 
 // Login User
-// router.post('/login', (req, res) => {
-//     const { user_email, user_password } = req.body;
-//     const sql = 'SELECT * FROM users WHERE user_email = ?';
-//     exe(sql, [user_email], async (err, results) => {
-//         if (err || results.length === 0) {
-//             console.error(err);
-//             return res.status(500).json({ message: 'Database error or user not found' });
-//         }
-
-//         const user = results[0];
-
-//         try {
-//             // Verify password
-//             const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
-//             if (!isPasswordValid) {
-//                 return res.status(401).json({ message: 'Invalid email or password' });
-//             }
-
-//             // Generate JWT token
-//             const userToken = jwt.sign(
-//                 { id: user.user_id, user_email: user.user_email },
-//                 config.userJwtSecret, { expiresIn: config.userJwtExpire }
-//             );
-//             return res.json({ message: 'Login successful', userToken });
-//         } catch (error) {
-//             console.error(error);
-//             return res.status(500).json({ message: 'Error during login' });
-//         }
-//     });
-// });
 router.post('/login', async (req, res) => {
     const { user_email, user_password } = req.body;
-
-    console.log('User email:', user_email);
-    console.log('User password:', user_password);
-    console.log('Body data:', req.body);
 
     if (!user_email || !user_password) {
         return res.status(400).json({ message: 'Email and Password are required' });
@@ -110,15 +76,14 @@ router.post('/login', async (req, res) => {
 
     try {
         const sql = 'SELECT * FROM users WHERE user_email = ?';
-        const result = await exe(sql, [user_email]);  // ✅ using 'result'
+        const result = await exe(sql, [user_email]);
 
-        if (result.length === 0) {  // ✅ fixed here
+        if (result.length === 0) {
             return res.status(401).send({ message: 'Invalid Email or password' });
         }
 
         const user = result[0];
         const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
-        console.log('isPasswordValid:', isPasswordValid);
 
         if (!isPasswordValid) {
             return res.status(401).send({ message: 'Invalid email or password' });
@@ -129,19 +94,12 @@ router.post('/login', async (req, res) => {
             config.userJwtSecret,
             { expiresIn: config.userJwtExpire }
         );
-
-        console.log('User Token Is:', userToken);
-
         return res.json({ message: 'Login successful', userToken });
-
     } catch (err) {
         console.error('Error during login:', err);
         return res.status(500).send({ message: 'Database error' });
     }
 });
-
-
-
 
 // Protected route example (requires authentication)
 router.get('/userProtected', authenticateToken, (req, res) => {
@@ -278,22 +236,6 @@ router.get('/home', async (req, res) => {
 });
 
 // Get Shop Page List
-// router.get('/products', async (req, res) => {
-//     const page = req.query.page || 1;
-//     const limit = 8; // Adjust as needed
-//     const offset = (page - 1) * limit;
-
-//     await exe('SELECT * FROM product LIMIT ?, ?', [offset, limit], (err, results) => {
-//         if (err) throw err;
-//         // Fetch the total number of pages
-//         exe('SELECT COUNT(*) AS total FROM product', (err, countResult) => {
-//             if (err) throw err;
-//             const totalPages = Math.ceil(countResult[0].total / limit);
-//             res.json({ products: results, totalPages });
-//         });
-//     });
-// });
-
 router.get('/products', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -316,7 +258,6 @@ router.get('/products', async (req, res) => {
     }
 });
 
-
 // Getting Product Info
 router.get('/product', async (req, res) => {
     try {
@@ -337,8 +278,6 @@ router.get('/product', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
-
-
 
 //Save Review
 router.post('/save_review', authenticateToken, async (req, res) => {
@@ -1165,6 +1104,17 @@ router.post('/verify-otp', async (req, res) => {
     }
 });
 
+//reset-password
+router.post('/reset-password', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await exe('UPDATE users SET user_password = ? WHERE user_email = ?', [hashedPassword, email]);
+        return res.status(200).json({ status: 'success', message: 'Password reset successfully' });
+    } catch (err) {
+        console.error('Error resetting password:', err);
+        return res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+})
 
 export { router as userRoute };
-
