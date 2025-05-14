@@ -273,35 +273,30 @@ router.get('/products', async (req, res) => {
 
 
 // Getting Product Info
-router.get('/product', (req, res) => {
-    const productId = req.query.id;
-    console.log('Producr id came :- ', productId);
-    
+router.get('/product', async (req, res) => {
+    try {
+        const productId = parseInt(req.query.id);
+        console.log("✅ Received Product ID:", productId);
 
-    if (!productId || isNaN(productId)) {
-        return res.status(400).json({ message: 'Invalid product ID' });
-    }
-
-    const parsedId = parseInt(productId);
-
-    console.log('parsed id :- ', parsedId);
-    
-
-    exe('SELECT * FROM product WHERE product_id = ?', [parsedId], (err, result) => {
-        if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ message: 'Internal server error' });
+        if (!productId || isNaN(productId)) {
+            return res.status(400).json({ message: 'Invalid product ID' });
         }
-        if (result.length === 0) {
+
+        const result = await exe('SELECT * FROM product WHERE product_id = ?', [productId]);
+        console.log('Result is : -', result);
+        
+
+        if (!result || result.length === 0) {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        console.log(result[0]);
-        
-
         res.status(200).json(result[0]);
-    });
+    } catch (error) {
+        console.error("❌ Error fetching product:", error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
+
 
 
 //Save Review
