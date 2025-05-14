@@ -274,12 +274,15 @@ router.get('/products', async (req, res) => {
 
 // Getting Product Info
 router.get('/product', (req, res) => {
-    const productId = parseInt(req.query.id); // Get the product ID from query params
-    if (!productId) {
+    const productId = req.query.id;
+
+    if (!productId || isNaN(productId)) {
         return res.status(400).json({ message: 'Invalid product ID' });
     }
 
-    exe('SELECT * FROM product WHERE product_id = ?', [productId], (err, result) => {
+    const parsedId = parseInt(productId);
+
+    exe('SELECT * FROM product WHERE product_id = ?', [parsedId], (err, result) => {
         if (err) {
             console.error('Database error:', err);
             return res.status(500).json({ message: 'Internal server error' });
@@ -287,9 +290,11 @@ router.get('/product', (req, res) => {
         if (result.length === 0) {
             return res.status(404).json({ message: 'Product not found' });
         }
-        res.json(result[0]); // Return the product details
+
+        res.status(200).json(result[0]);
     });
 });
+
 
 //Save Review
 router.post('/save_review', authenticateToken, async (req, res) => {
