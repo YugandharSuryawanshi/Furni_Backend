@@ -233,21 +233,44 @@ router.get('/home', async (req, res) => {
 });
 
 // Get Shop Page List
-router.get('/products', async (req, res) => {
-    const page = req.query.page || 1;
-    const limit = 8; // Adjust as needed
-    const offset = (page - 1) * limit;
+// router.get('/products', async (req, res) => {
+//     const page = req.query.page || 1;
+//     const limit = 8; // Adjust as needed
+//     const offset = (page - 1) * limit;
 
-    await exe('SELECT * FROM product LIMIT ?, ?', [offset, limit], (err, results) => {
-        if (err) throw err;
-        // Fetch the total number of pages
-        exe('SELECT COUNT(*) AS total FROM product', (err, countResult) => {
-            if (err) throw err;
-            const totalPages = Math.ceil(countResult[0].total / limit);
-            res.json({ products: results, totalPages });
-        });
-    });
+//     await exe('SELECT * FROM product LIMIT ?, ?', [offset, limit], (err, results) => {
+//         if (err) throw err;
+//         // Fetch the total number of pages
+//         exe('SELECT COUNT(*) AS total FROM product', (err, countResult) => {
+//             if (err) throw err;
+//             const totalPages = Math.ceil(countResult[0].total / limit);
+//             res.json({ products: results, totalPages });
+//         });
+//     });
+// });
+
+router.get('/products', async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 8;
+        const offset = (page - 1) * limit;
+
+        // First, fetch paginated products
+        const products = await exe('SELECT * FROM product LIMIT ?, ?', [offset, limit]);
+
+        // Then, fetch total count
+        const countResult = await exe('SELECT COUNT(*) AS total FROM product');
+        const totalPages = Math.ceil(countResult[0].total / limit);
+
+        // Send response
+        res.json({ products, totalPages });
+
+    } catch (err) {
+        console.error('Error fetching products:', err);
+        res.status(500).json({ message: 'Server error while fetching products' });
+    }
 });
+
 
 // Getting Product Info
 router.get('/product', (req, res) => {
