@@ -1106,15 +1106,19 @@ router.post('/verify-otp', async (req, res) => {
 
 //reset-password
 router.post('/reset-password', async (req, res) => {
-    const { email, password } = req.body;
+    const { user_email, newPassword } = req.body;
+
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await exe('UPDATE users SET user_password = ? WHERE user_email = ?', [hashedPassword, email]);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await exe('UPDATE users SET user_password = ? WHERE user_email = ?', [hashedPassword, user_email]);
+
         return res.status(200).json({ status: 'success', message: 'Password reset successfully' });
     } catch (err) {
         console.error('Error resetting password:', err);
         return res.status(500).json({ status: 'error', message: 'Server error' });
     }
-})
+});
+
 
 export { router as userRoute };
