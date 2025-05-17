@@ -530,86 +530,221 @@ router.post('/create_order', authenticateToken, async (req, res) => {
 });
 
 // ONLINE Payment Gateway order Save
+// router.post('/verify_payment', authenticateToken, async (req, res) => {
+//     try {
+//         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = req.body;
+
+//         const userId = req.user.id;
+//         console.log('User ID:', userId);
+//         console.log('Razorpay Order ID:', razorpay_order_id);
+//         console.log('Razorpay Payment ID:', razorpay_payment_id);
+//         console.log('Razorpay Signature:', razorpay_signature);
+//         console.log('Order Details:', orderDetails);
+
+//         if (!orderDetails || !razorpay_payment_id || !orderDetails.cartProducts || orderDetails.cartProducts.length === 0) {
+//             console.error("Missing order details or empty cart:", req.body);
+//             return res.status(400).json({ success: false, message: 'Missing order details or empty cart' });
+//         }
+
+//         //Verify Razorpay Signature
+//         const hmac = crypto.createHmac('sha256', config.razorpayKeySecret);
+//         hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
+//         const generatedSignature = hmac.digest('hex');
+
+//         if (generatedSignature !== razorpay_signature) {
+//             console.error("Payment verification failed. Signatures do not match.");
+//             return res.status(400).json({ success: false, message: 'Payment verification failed' });
+//         }
+
+//         //Calculate Order Totals calculations
+//         let total_amount = 0;
+//         let total_gst = 0, total_discount = 0, final_total = 0;
+
+//         // function calculatePrice(product) {
+//         //     let product_price = parseFloat(product.product_price);
+//         //     let gst_percentage = parseFloat(product.gst_percentage);
+//         //     let discount_percentage = parseFloat(product.discount_percentage);
+
+//         //     let gst_amount = (product_price * gst_percentage) / 100;
+//         //     let discount_amount = (product_price * discount_percentage) / 100;
+//         //     let final_price = product_price + gst_amount - discount_amount;
+
+//         //     total_amount += product_price; //Base Price with GST & Discount..
+//         //     total_gst += gst_amount;
+//         //     total_discount += discount_amount;
+//         //     final_total += final_price;
+
+//         //     return { gst_amount, discount_amount, final_price };
+//         // }
+
+//         function calculatePrice(product) {
+//             const qty = parseInt(product.qty);
+//             const product_price = parseFloat(product.product_price);
+//             const gst_percentage = parseFloat(product.gst_percentage);
+//             const discount_percentage = parseFloat(product.discount_percentage);
+        
+//             const discount_per_unit = (product_price * discount_percentage) / 100;
+//             const discounted_price = product_price - discount_per_unit;
+        
+//             const gst_per_unit = (discounted_price * gst_percentage) / 100;
+//             const final_price_per_unit = discounted_price + gst_per_unit;
+        
+//             const total_discount = discount_per_unit * qty;
+//             const total_gst = gst_per_unit * qty;
+//             const total_price = discounted_price * qty;
+//             const final_price = final_price_per_unit * qty;
+        
+//             total_amount += total_price;
+//             total_gst += total_gst;
+//             total_discount += total_discount;
+//             final_total += final_price;
+        
+//             return { gst_amount: total_gst, discount_amount: total_discount, final_price, qty };
+//         }
+        
+
+
+//         // Process each product calculation
+//         for (let product of orderDetails.cartProducts) {
+//             calculatePrice(product);
+//         }
+
+//         // Insert Order Data into order_tbl table
+//         const orderSql = `
+//             INSERT INTO order_tbl (
+//                 user_id, country, c_fname, c_lname, c_address, c_area, c_state, c_postal_zip, c_email_address, c_phone,
+//                 payment_mode, order_date, order_status, order_dispatch_date, order_delivered_date, order_cancel_date,
+//                 order_reject_date, payment_status, transaction_id, payment_date, total_amount, total_gst, total_discount, final_total
+//             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//         `;
+
+//         const orderValues = [
+//             userId, orderDetails.c_country, orderDetails.c_fname, orderDetails.c_lname, orderDetails.c_address, orderDetails.c_area,
+//             orderDetails.c_state, orderDetails.c_postal_zip, orderDetails.c_email, orderDetails.c_phone, "online",
+//             "Confirmed", null, null, null, null, "Paid", razorpay_payment_id, new Date(),
+//             total_amount, total_gst, total_discount, final_total
+//         ];
+
+//         const orderResult = await exe(orderSql, orderValues);
+//         if (!orderResult || !orderResult.insertId) throw new Error("Order insertion failed.");
+
+//         const orderId = orderResult.insertId;
+
+//         //Insert Ordered Products
+//         const productSql = `
+//             INSERT INTO order_products (order_id, user_id, product_id, product_name, product_qty, product_price,
+//                 gst_amount, discount_amount, final_price, product_details)
+//             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//         `;
+
+//         // for (let product of orderDetails.cartProducts) {
+//         //     let { gst_amount, discount_amount, final_price } = calculatePrice(product);
+//         //     const productValues = [
+//         //         orderId,
+//         //         userId,
+//         //         product.product_id,
+//         //         product.product_name,
+//         //         product.qty,
+//         //         product.product_price,
+//         //         gst_amount,
+//         //         discount_amount,
+//         //         final_price,
+//         //         product.product_details
+//         //     ];
+//         //     await exe(productSql, productValues);
+//         // }
+
+//         //Send Success Response
+        
+//         for (let product of orderDetails.cartProducts) {
+//             let { gst_amount, discount_amount, final_price, qty } = calculatePrice(product);
+//             const productValues = [
+//                 orderId,
+//                 userId,
+//                 product.product_id,
+//                 product.product_name,
+//                 qty,
+//                 product.product_price,
+//                 gst_amount,
+//                 discount_amount,
+//                 final_price,
+//                 product.product_details
+//             ];
+//             await exe(productSql, productValues);
+//         }
+        
+        
+//         res.status(200).json({ success: true, message: 'Order placed successfully!' });
+
+//     } catch (error) {
+//         console.error('Error verifying payment:', error);
+//         res.status(500).json({ success: false, message: 'Error verifying payment' });
+//     }
+// });
+
+
 router.post('/verify_payment', authenticateToken, async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = req.body;
-
         const userId = req.user.id;
-        console.log('User ID:', userId);
-        console.log('Razorpay Order ID:', razorpay_order_id);
-        console.log('Razorpay Payment ID:', razorpay_payment_id);
-        console.log('Razorpay Signature:', razorpay_signature);
-        console.log('Order Details:', orderDetails);
 
         if (!orderDetails || !razorpay_payment_id || !orderDetails.cartProducts || orderDetails.cartProducts.length === 0) {
-            console.error("Missing order details or empty cart:", req.body);
             return res.status(400).json({ success: false, message: 'Missing order details or empty cart' });
         }
 
-        //Verify Razorpay Signature
+        // ✅ Verify Razorpay Signature
         const hmac = crypto.createHmac('sha256', config.razorpayKeySecret);
         hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
         const generatedSignature = hmac.digest('hex');
 
         if (generatedSignature !== razorpay_signature) {
-            console.error("Payment verification failed. Signatures do not match.");
             return res.status(400).json({ success: false, message: 'Payment verification failed' });
         }
 
-        //Calculate Order Totals calculations
+        // ✅ Calculate Price Totals
         let total_amount = 0;
-        let total_gst = 0, total_discount = 0, final_total = 0;
+        let total_gst = 0;
+        let total_discount = 0;
+        let final_total = 0;
 
-        // function calculatePrice(product) {
-        //     let product_price = parseFloat(product.product_price);
-        //     let gst_percentage = parseFloat(product.gst_percentage);
-        //     let discount_percentage = parseFloat(product.discount_percentage);
-
-        //     let gst_amount = (product_price * gst_percentage) / 100;
-        //     let discount_amount = (product_price * discount_percentage) / 100;
-        //     let final_price = product_price + gst_amount - discount_amount;
-
-        //     total_amount += product_price; //Base Price with GST & Discount..
-        //     total_gst += gst_amount;
-        //     total_discount += discount_amount;
-        //     final_total += final_price;
-
-        //     return { gst_amount, discount_amount, final_price };
-        // }
-
-        function calculatePrice(product) {
+        const calculatePrice = (product) => {
             const qty = parseInt(product.qty);
             const product_price = parseFloat(product.product_price);
             const gst_percentage = parseFloat(product.gst_percentage);
             const discount_percentage = parseFloat(product.discount_percentage);
-        
+
             const discount_per_unit = (product_price * discount_percentage) / 100;
             const discounted_price = product_price - discount_per_unit;
-        
+
             const gst_per_unit = (discounted_price * gst_percentage) / 100;
             const final_price_per_unit = discounted_price + gst_per_unit;
-        
-            const total_discount = discount_per_unit * qty;
-            const total_gst = gst_per_unit * qty;
-            const total_price = discounted_price * qty;
-            const final_price = final_price_per_unit * qty;
-        
-            total_amount += total_price;
-            total_gst += total_gst;
-            total_discount += total_discount;
-            final_total += final_price;
-        
-            return { gst_amount: total_gst, discount_amount: total_discount, final_price, qty };
-        }
-        
 
+            const item_total_discount = discount_per_unit * qty;
+            const item_total_gst = gst_per_unit * qty;
+            const item_total_price = discounted_price * qty;
+            const item_final_price = final_price_per_unit * qty;
 
-        // Process each product calculation
-        for (let product of orderDetails.cartProducts) {
-            calculatePrice(product);
-        }
+            // ✅ Accumulate to grand totals
+            total_amount += item_total_price;
+            total_gst += item_total_gst;
+            total_discount += item_total_discount;
+            final_total += item_final_price;
 
-        // Insert Order Data into order_tbl table
+            return {
+                gst_amount: item_total_gst,
+                discount_amount: item_total_discount,
+                final_price: item_final_price,
+                qty
+            };
+        };
+
+        // Precalculate all for orderProducts table
+        const productDetailsList = orderDetails.cartProducts.map(product => ({
+            ...product,
+            ...calculatePrice(product)
+        }));
+
+        // ✅ Insert into `order_tbl`
         const orderSql = `
             INSERT INTO order_tbl (
                 user_id, country, c_fname, c_lname, c_address, c_area, c_state, c_postal_zip, c_email_address, c_phone,
@@ -622,7 +757,7 @@ router.post('/verify_payment', authenticateToken, async (req, res) => {
             userId, orderDetails.c_country, orderDetails.c_fname, orderDetails.c_lname, orderDetails.c_address, orderDetails.c_area,
             orderDetails.c_state, orderDetails.c_postal_zip, orderDetails.c_email, orderDetails.c_phone, "online",
             "Confirmed", null, null, null, null, "Paid", razorpay_payment_id, new Date(),
-            total_amount, total_gst, total_discount, final_total
+            total_amount.toFixed(2), total_gst.toFixed(2), total_discount.toFixed(2), final_total.toFixed(2)
         ];
 
         const orderResult = await exe(orderSql, orderValues);
@@ -630,55 +765,35 @@ router.post('/verify_payment', authenticateToken, async (req, res) => {
 
         const orderId = orderResult.insertId;
 
-        //Insert Ordered Products
+        // ✅ Insert into `order_products`
         const productSql = `
-            INSERT INTO order_products (order_id, user_id, product_id, product_name, product_qty, product_price,
-                gst_amount, discount_amount, final_price, product_details)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO order_products (
+                order_id, user_id, product_id, product_name, product_qty, product_price,
+                gst_amount, discount_amount, final_price, product_details
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        // for (let product of orderDetails.cartProducts) {
-        //     let { gst_amount, discount_amount, final_price } = calculatePrice(product);
-        //     const productValues = [
-        //         orderId,
-        //         userId,
-        //         product.product_id,
-        //         product.product_name,
-        //         product.qty,
-        //         product.product_price,
-        //         gst_amount,
-        //         discount_amount,
-        //         final_price,
-        //         product.product_details
-        //     ];
-        //     await exe(productSql, productValues);
-        // }
-
-        //Send Success Response
-        
-        for (let product of orderDetails.cartProducts) {
-            let { gst_amount, discount_amount, final_price, qty } = calculatePrice(product);
+        for (let product of productDetailsList) {
             const productValues = [
                 orderId,
                 userId,
                 product.product_id,
                 product.product_name,
-                qty,
+                product.qty,
                 product.product_price,
-                gst_amount,
-                discount_amount,
-                final_price,
+                product.gst_amount,
+                product.discount_amount,
+                product.final_price,
                 product.product_details
             ];
             await exe(productSql, productValues);
         }
-        
-        
+
         res.status(200).json({ success: true, message: 'Order placed successfully!' });
 
     } catch (error) {
         console.error('Error verifying payment:', error);
-        res.status(500).json({ success: false, message: 'Error verifying payment' });
+        res.status(500).json({ success: false, message: 'Error verifying payment', error: error.message });
     }
 });
 
@@ -1172,3 +1287,4 @@ router.post('/reset-password', async (req, res) => {
 
 
 export { router as userRoute };
+
