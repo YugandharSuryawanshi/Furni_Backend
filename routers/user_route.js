@@ -516,7 +516,7 @@ router.post('/create_order', authenticateToken, async (req, res) => {
         }
 
         const options = {
-            amount: amount * 100, // Razorpay requires the amount in paise thats why it
+            amount: amount, // Razorpay requires the amount in paisa
             currency: currency,
             receipt: `order_rcptid_${Date.now()}`
         };
