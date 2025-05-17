@@ -535,6 +535,11 @@ router.post('/verify_payment', authenticateToken, async (req, res) => {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = req.body;
 
         const userId = req.user.id;
+        console.log('User ID:', userId);
+        console.log('Razorpay Order ID:', razorpay_order_id);
+        console.log('Razorpay Payment ID:', razorpay_payment_id);
+        console.log('Razorpay Signature:', razorpay_signature);
+        console.log('Order Details:', orderDetails);
 
         if (!orderDetails || !razorpay_payment_id || !orderDetails.cartProducts || orderDetails.cartProducts.length === 0) {
             console.error("Missing order details or empty cart:", req.body);
@@ -555,21 +560,40 @@ router.post('/verify_payment', authenticateToken, async (req, res) => {
         let total_amount = 0;
         let total_gst = 0, total_discount = 0, final_total = 0;
 
+        // function calculatePrice(product) {
+        //     let product_price = parseFloat(product.product_price);
+        //     let gst_percentage = parseFloat(product.gst_percentage);
+        //     let discount_percentage = parseFloat(product.discount_percentage);
+
+        //     let gst_amount = (product_price * gst_percentage) / 100;
+        //     let discount_amount = (product_price * discount_percentage) / 100;
+        //     let final_price = product_price + gst_amount - discount_amount;
+
+        //     total_amount += product_price; //Base Price with GST & Discount..
+        //     total_gst += gst_amount;
+        //     total_discount += discount_amount;
+        //     final_total += final_price;
+
+        //     return { gst_amount, discount_amount, final_price };
+        // }
+
         function calculatePrice(product) {
+            let qty = parseInt(product.qty);
             let product_price = parseFloat(product.product_price);
             let gst_percentage = parseFloat(product.gst_percentage);
             let discount_percentage = parseFloat(product.discount_percentage);
-
-            let gst_amount = (product_price * gst_percentage) / 100;
-            let discount_amount = (product_price * discount_percentage) / 100;
-            let final_price = product_price + gst_amount - discount_amount;
-
-            total_amount += product_price; //Base Price with GST & Discount..
+        
+            let productTotal = product_price * qty;
+            let gst_amount = (productTotal * gst_percentage) / 100;
+            let discount_amount = (productTotal * discount_percentage) / 100;
+            let final_price = productTotal + gst_amount - discount_amount;
+        
+            total_amount += productTotal;
             total_gst += gst_amount;
             total_discount += discount_amount;
             final_total += final_price;
-
-            return { gst_amount, discount_amount, final_price };
+        
+            return { gst_amount, discount_amount, final_price, qty };
         }
 
 
@@ -606,14 +630,33 @@ router.post('/verify_payment', authenticateToken, async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
+        // for (let product of orderDetails.cartProducts) {
+        //     let { gst_amount, discount_amount, final_price } = calculatePrice(product);
+        //     const productValues = [
+        //         orderId,
+        //         userId,
+        //         product.product_id,
+        //         product.product_name,
+        //         product.qty,
+        //         product.product_price,
+        //         gst_amount,
+        //         discount_amount,
+        //         final_price,
+        //         product.product_details
+        //     ];
+        //     await exe(productSql, productValues);
+        // }
+
+        //Send Success Response
+        
         for (let product of orderDetails.cartProducts) {
-            let { gst_amount, discount_amount, final_price } = calculatePrice(product);
+            let { gst_amount, discount_amount, final_price, qty } = calculatePrice(product);
             const productValues = [
                 orderId,
                 userId,
                 product.product_id,
                 product.product_name,
-                product.qty,
+                qty,
                 product.product_price,
                 gst_amount,
                 discount_amount,
@@ -622,8 +665,8 @@ router.post('/verify_payment', authenticateToken, async (req, res) => {
             ];
             await exe(productSql, productValues);
         }
-
-        //Send Success Response
+        
+        
         res.status(200).json({ success: true, message: 'Order placed successfully!' });
 
     } catch (error) {
