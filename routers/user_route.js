@@ -578,23 +578,30 @@ router.post('/verify_payment', authenticateToken, async (req, res) => {
         // }
 
         function calculatePrice(product) {
-            let qty = parseInt(product.qty);
-            let product_price = parseFloat(product.product_price);
-            let gst_percentage = parseFloat(product.gst_percentage);
-            let discount_percentage = parseFloat(product.discount_percentage);
+            const qty = parseInt(product.qty);
+            const product_price = parseFloat(product.product_price);
+            const gst_percentage = parseFloat(product.gst_percentage);
+            const discount_percentage = parseFloat(product.discount_percentage);
         
-            let productTotal = product_price * qty;
-            let gst_amount = (productTotal * gst_percentage) / 100;
-            let discount_amount = (productTotal * discount_percentage) / 100;
-            let final_price = productTotal + gst_amount - discount_amount;
+            const discount_per_unit = (product_price * discount_percentage) / 100;
+            const discounted_price = product_price - discount_per_unit;
         
-            total_amount += productTotal;
-            total_gst += gst_amount;
-            total_discount += discount_amount;
+            const gst_per_unit = (discounted_price * gst_percentage) / 100;
+            const final_price_per_unit = discounted_price + gst_per_unit;
+        
+            const total_discount = discount_per_unit * qty;
+            const total_gst = gst_per_unit * qty;
+            const total_price = discounted_price * qty;
+            const final_price = final_price_per_unit * qty;
+        
+            total_amount += total_price;
+            total_gst += total_gst;
+            total_discount += total_discount;
             final_total += final_price;
         
-            return { gst_amount, discount_amount, final_price, qty };
+            return { gst_amount: total_gst, discount_amount: total_discount, final_price, qty };
         }
+        
 
 
         // Process each product calculation
