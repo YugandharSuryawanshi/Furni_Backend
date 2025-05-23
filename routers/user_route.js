@@ -12,8 +12,8 @@ const blacklist = new Set();
 
 // For Razorpay integration
 const razorpay = new Razorpay({
-    key_id: config.razorpayKeyId,
-    key_secret: config.razorpayKeySecret
+    key_id: config.RAZORPAY_KEY_ID,
+    key_secret: config.RAZORPAY_KEY_SECRET
 });
 
 // Middleware for authentication
