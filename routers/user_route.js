@@ -10,6 +10,10 @@ import { exe } from '../connection.js';
 const router = express.Router();
 const blacklist = new Set();
 
+// DEBUG LOGS – Remove in production
+console.log("RAZORPAY_KEY_ID:", config.RAZORPAY_KEY_ID);
+console.log("RAZORPAY_KEY_SECRET:", config.RAZORPAY_KEY_SECRET);
+
 // For Razorpay integration
 const razorpay = new Razorpay({
     key_id: config.RAZORPAY_KEY_ID,
