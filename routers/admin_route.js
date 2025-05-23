@@ -82,6 +82,9 @@ router.post('/verifyAdminPass', async (req, res) => {
 
 router.post('/adminLogin', async (req, res) => {
     const { admin_email, admin_password , otp } = req.body;
+    console.log('otp', otp);
+    console.log('admin_email', admin_email);
+    console.log('admin_password', admin_password);
 
     if (!admin_email || !admin_password || !otp) {
         return res.status(400).send({ message: 'Email and password Both Fields are required' });
@@ -90,6 +93,8 @@ router.post('/adminLogin', async (req, res) => {
     const sql = 'SELECT * FROM admins WHERE admin_email = ?';
     try {
         const results = await exe(sql, [admin_email]);
+        console.log('Results:', results);
+        
 
         if (results.length === 0) {
             return res.status(401).send({ message: 'Invalid Email or password' });
