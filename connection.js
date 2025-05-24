@@ -70,7 +70,7 @@
 import mysql from 'mysql2/promise';
 import { config } from './config/config.js';
 
-//Create a pool with recommended options
+// Create a MySQL connection pool
 const pool = mysql.createPool({
     host: config.db.host || 'localhost',
     user: config.db.user || 'root',
@@ -80,17 +80,21 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 10000,
+    connectTimeout: 10000, // 10 seconds
 });
 
-// Reusable function to execute queries properly
-async function exe(sql, params) {
+// Reusable function to execute SQL queries using the pool
+async function exe(sql, params = []) {
+    let conn;
     try {
-        const [rows] = await pool.query(sql, params);
+        conn = await pool.getConnection();       // Get connection from pool
+        const [rows] = await conn.execute(sql, params); // Use .execute for prepared statements
         return rows;
     } catch (err) {
-        console.error('DB Query Error:', err);
+        console.error('Database Query Error:', err.message);
         throw err;
+    } finally {
+        if (conn) conn.release(); // Always release connection back to the pool
     }
 }
 
