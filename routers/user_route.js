@@ -1072,6 +1072,76 @@ router.get('/most_viewed', async (req, res) => {
     }
 });
 
+
+router.post('/register-send-otp', async (req, res) => {
+    const { email } = req.body;
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins Valid
+
+    const emailHtml = `<!DOCTYPE html><html>
+    <body>...
+    <h3>Your OTP to verify your identity on FurnitureStore is: <strong>${otp}</strong></h3>
+    <h4>This OTP will expire in 5 minutes.</h4>
+    ...
+    <p>&copy; @yogi Furni Store. All rights reserved.</p>
+    </body></html>`;
+    try {
+        await exe('UPDATE users SET otp = ?, otp_created_at = NOW(), otp_expiry = ? WHERE user_email = ?', [otp, expiry, email]);
+        const transporter = nodemailer.createTransport({
+            host: config.EMAIL_HOST,
+            port: config.EMAIL_PORT,
+            auth: {
+                user: config.EMAIL_USER,
+                pass: config.EMAIL_PASS
+            }
+        });
+
+        await transporter.sendMail({
+            from: config.EMAIL_USER,
+            to: email,
+            subject: 'Your OTP for Password Change',
+            html: emailHtml
+        });
+
+        res.json({ status: 'success', message: 'OTP sent to email', otp: otp });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ status: 'error', message: 'Failed to send OTP' });
+    }
+});
+
+router.post('/register-verify-otp', async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const d = await exe('SELECT * FROM users WHERE user_email = ?', [email]);
+
+        if (d.length === 0) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+        }
+        const user = d[0];
+        const now = new Date();
+        const otpExpiry = new Date(user.otp_expiry);
+
+        // Check if OTP matches
+        if (user.otp !== otp) {
+            return res.status(400).json({ status: 'error', message: 'OTP does not match' });
+        }
+
+        // Check if OTP is expired
+        if (now > otpExpiry) {
+            return res.status(400).json({ status: 'error', message: 'OTP has expired' });
+        }
+
+        // If OTP matched and not expired
+        return res.status(200).json({ status: 'success', message: 'OTP verified successfully' });
+
+    } catch (err) {
+        console.error('Error verifying OTP:', err);
+        return res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+});
+
 // Send OTP
 router.post('/send-otp', async (req, res) => {
     const { email } = req.body;
